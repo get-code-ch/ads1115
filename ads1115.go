@@ -14,82 +14,105 @@ type Ads1115 struct {
 	Description string `json:"description"`
 }
 
+type OS byte
+type Mux byte
+type PGA byte
+type Mode byte
+type DR byte
+type CM byte
+type CP byte
+type LC byte
+type Queue byte
+
+type Configuration struct {
+	OS                 OS    `json:"os"`
+	Mux                Mux   `json:"mux"`
+	PGA                PGA   `json:"pga"`
+	Mode               Mode  `json:"mode"`
+	DataRate           DR    `json:"dr"`
+	ComparatorMode     CM    `json:"cm"`
+	ComparatorPolarity CP    `json:"cp"`
+	LatchingComparator LC    `json:"lc"`
+	ComparatorQueue    Queue `json:"queue"`
+}
+
 const (
+	// Register Address
 	conversionReg = 0x00
 	configReg     = 0x01
 	lowThreshReg  = 0x02
 	highThreshReg = 0x03
 
 	// Configuration Register MSB[7] OS field
-	OsField = 7
-	OsWNoEffect = 0b0
-	OsWStartSingleConversion = 0b1 //reset
-	OsRPerformingConversion = 0b0
-	OsRConversionReady = 0b1
+	OsField                     = 7
+	OsWNoEffect              OS = 0b0 // W
+	OsWStartSingleConversion OS = 0b1 // W / reset
+	OsRPerformingConversion  OS = 0b0 // R
+	OsRConversionReady       OS = 0b1 // R
 
 	// Configuration Register MSB[6:4] MUX field
-	MuxField = 4
-	MuxA0A1 = 0b000 //reset
-	MuxA0A3 = 0b001
-	MuxA1A3 = 0b010
-	MuxA2A3 = 0b011
-	MuxA0GND = 0b100
-	MuxA1GND= 0b101
-	MuxA2GND = 0b110
-	MuxA3GND = 0b111
+	MuxField Mux = 4
+	MuxA0A1  Mux = 0b000 //reset
+	MuxA0A3  Mux = 0b001
+	MuxA1A3  Mux = 0b010
+	MuxA2A3  Mux = 0b011
+	MuxA0GND Mux = 0b100
+	MuxA1GND Mux = 0b101
+	MuxA2GND Mux = 0b110
+	MuxA3GND Mux = 0b111
 
 	// Configuration Register MSB[3:1] PGA (Gain field)
-	PGAField = 1
-	PGA6144 = 0b000
-	PGA6144Scale = 0.1875 / 1000
-	PGA4096 = 0b001
-	PGA4096Scale = 0.125 / 1000
-	PGA2048 = 0b010 //reset
-	PGA2048Scale = 0.0625 / 1000
-	PGA1024 = 0b011
-	PGA1024Scale = 0.03125 / 1000
-	PGA512 = 0b100
-	PGA512Scale = 0.015625 / 1000
-	PGA256 = 0b101
-	PGA256Scale = 0.0078125 / 1000
+	PGAField         = 1
+	PGA6144      PGA = 0b000
+	PGA6144Scale     = 0.1875 / 1000
+	PGA4096      PGA = 0b001
+	PGA4096Scale     = 0.125 / 1000
+	PGA2048      PGA = 0b010 //reset
+	PGA2048Scale     = 0.0625 / 1000
+	PGA1024      PGA = 0b011
+	PGA1024Scale     = 0.03125 / 1000
+	PGA512       PGA = 0b100
+	PGA512Scale      = 0.015625 / 1000
+	PGA256       PGA = 0b101
+	PGA256Scale      = 0.0078125 / 1000
 
 	// Configuration Register MSB[0] Mode
-	ModeField = 0
-	ModeContinuous = 0
-	ModeSingle = 1 //reset
+	ModeField           = 0
+	ModeContinuous Mode = 0
+	ModeSingle     Mode = 1 //reset
 
 	// Configuration Register LSB[7:5] Data Rate
-	DRField = 7
-	SPS8 = 0b000
-	SPS16 = 0b001
-	SPS32 = 0b010
-	SPS64 = 0b011
-	SPS128 = 0b100 //reset
-	SPS250 = 0b101
-	SPS475 = 0b110
-	SPS86 = 0b111
+	DRField    = 7
+	SPS8    DR = 0b000
+	SPS16   DR = 0b001
+	SPS32   DR = 0b010
+	SPS64   DR = 0b011
+	SPS128  DR = 0b100 //reset
+	SPS250  DR = 0b101
+	SPS475  DR = 0b110
+	SPS86   DR = 0b111
 
 	// Configuration Register LSB[4] Comp Mode
-	CMField = 4
-	CMTraditional = 0b0 //reset
-	CMWindowComparator = 0b1
+	CMField               = 4
+	CMTraditional      CM = 0b0 //reset
+	CMWindowComparator CM = 0b1
 
 	// Configuration Register LSB[3] Comp polarity
-	CPField = 3
-	CPActiveLow = 0b0 //reset
-	CPActiveHigh = 0b1
+	CPField         = 3
+	CPActiveLow  CP = 0b0 //reset
+	CPActiveHigh CP = 0b1
 
 	// Configuration Register LSB[2] Latching comparator
-	LCField = 2
-	LCNon = 0b0 //reset
-	LCYes = 0b1
+	LCField    = 2
+	LCNon   LC = 0b0 //reset
+	LCYes   LC = 0b1
 
 	// Configuration Register LSB[1:0] Comparator queue
-	QField = 0
-	QOne = 0b00
-	QTwo = 0b01
-	QFour = 0b10
-	QDisable = 0b11 //reset
+	QField         = 0
+	QOne     Queue = 0b00
+	QTwo     Queue = 0b01
+	QFour    Queue = 0b10
+	QDisable Queue = 0b11 //reset
 )
 
 func New(device string, name string, address int, description string) (Ads1115, error) {
@@ -119,20 +142,20 @@ func Init(device string, add int, module *Ads1115) error {
 	ConfMsb := byte(0)
 	ConfLsb := byte(0)
 
-	ConfMsb = OsWStartSingleConversion << OsField | MuxA3GND << MuxField | PGA4096 << PGAField | ModeContinuous << ModeField
+	ConfMsb = byte(OsWStartSingleConversion)<<OsField | byte(MuxA3GND)<<MuxField | byte(PGA4096<<PGAField) | byte(ModeContinuous<<ModeField)
 	log.Printf("ConfMsb %b\n", ConfMsb)
-	ConfLsb = SPS16 << DRField | CMTraditional << CMField | CPActiveLow << CPField | LCNon << LCField | QDisable << QField
-	module.Device.Write([]byte{configReg,ConfMsb,ConfLsb})
+	ConfLsb = byte(SPS16<<DRField) | byte(CMTraditional<<CMField) | byte(CPActiveLow<<CPField) | byte(LCNon<<LCField) | byte(QDisable<<QField)
+	module.Device.Write([]byte{configReg, ConfMsb, ConfLsb})
 
 	return err
 }
 
 func ReadConversionRegister(module *Ads1115) (int16, float64, []byte) {
-	regValue := []byte{0,0}
+	regValue := []byte{0, 0}
 
 	value := int16(0)
 
-	module.Device.Tx([]byte{conversionReg},regValue)
+	module.Device.Tx([]byte{conversionReg}, regValue)
 	value = 0 | (int16(regValue[0]) << 8) | int16(regValue[1])
 
 	return value, float64(value) * PGA4096Scale, regValue

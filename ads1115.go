@@ -5,6 +5,8 @@ import (
 	"periph.io/x/periph/conn/i2c"
 	"periph.io/x/periph/conn/i2c/i2creg"
 	"periph.io/x/periph/host"
+	"strings"
+	"time"
 )
 
 type Ads1115 struct {
@@ -64,17 +66,17 @@ const (
 	// Configuration Register MSB[3:1] PGA (Gain field)
 	PGAField         = 1
 	PGA6144      PGA = 0b000
-	PGA6144Scale     = 0.1875 / 1000
+	PGA6144Scale     = 187.5 / 1000000
 	PGA4096      PGA = 0b001
-	PGA4096Scale     = 0.125 / 1000
+	PGA4096Scale     = 125 / 1000000
 	PGA2048      PGA = 0b010 //reset
-	PGA2048Scale     = 0.0625 / 1000
+	PGA2048Scale     = 62.5 / 1000000
 	PGA1024      PGA = 0b011
-	PGA1024Scale     = 0.03125 / 1000
+	PGA1024Scale     = 31.25 / 1000000
 	PGA512       PGA = 0b100
-	PGA512Scale      = 0.015625 / 1000
+	PGA512Scale      = 15.625 / 1000000
 	PGA256       PGA = 0b101
-	PGA256Scale      = 0.0078125 / 1000
+	PGA256Scale      = 7.8125 / 1000000
 
 	// Configuration Register MSB[0] Mode
 	ModeField           = 0
@@ -82,7 +84,7 @@ const (
 	ModeSingle     Mode = 1 //reset
 
 	// Configuration Register LSB[7:5] Data Rate
-	DRField    = 7
+	DRField    = 5
 	SPS8    DR = 0b000
 	SPS16   DR = 0b001
 	SPS32   DR = 0b010
@@ -90,7 +92,7 @@ const (
 	SPS128  DR = 0b100 //reset
 	SPS250  DR = 0b101
 	SPS475  DR = 0b110
-	SPS86   DR = 0b111
+	SPS860  DR = 0b111
 
 	// Configuration Register LSB[4] Comp Mode
 	CMField               = 4
@@ -138,25 +140,57 @@ func Init(device string, add int, module *Ads1115) error {
 		return err
 	}
 	module.Device = &i2c.Dev{Addr: uint16(add), Bus: b}
+	/*
+		ConfMsb := byte(0)
+		ConfLsb := byte(0)
 
+		ConfMsb = byte(OsWStartSingleConversion)<<OsField | byte(MuxA3GND)<<MuxField | byte(PGA4096<<PGAField) | byte(ModeContinuous<<ModeField)
+		log.Printf("ConfMsb %b\n", ConfMsb)
+		ConfLsb = byte(SPS16<<DRField) | byte(CMTraditional<<CMField) | byte(CPActiveLow<<CPField) | byte(LCNon<<LCField) | byte(QDisable<<QField)
+		module.Device.Write([]byte{configReg, ConfMsb, ConfLsb})
+
+	*/
+	return nil
+}
+
+func ReadConversionRegister(module *Ads1115, input string) float64 {
+
+	// Config input value to read
 	ConfMsb := byte(0)
 	ConfLsb := byte(0)
 
-	ConfMsb = byte(OsWStartSingleConversion)<<OsField | byte(MuxA3GND)<<MuxField | byte(PGA4096<<PGAField) | byte(ModeContinuous<<ModeField)
-	log.Printf("ConfMsb %b\n", ConfMsb)
-	ConfLsb = byte(SPS16<<DRField) | byte(CMTraditional<<CMField) | byte(CPActiveLow<<CPField) | byte(LCNon<<LCField) | byte(QDisable<<QField)
+	mux := MuxA0GND
+	switch strings.ToUpper(input) {
+	case "AIN0":
+		mux = MuxA0GND
+		break
+	case "AIN1":
+		mux = MuxA1GND
+		break
+	case "AIN2":
+		mux = MuxA2GND
+		break
+	case "AIN3":
+		mux = MuxA3GND
+		break
+	}
+
+	ConfMsb = byte(0)<<OsField | byte(mux)<<MuxField | byte(PGA6144<<PGAField) | byte(ModeContinuous<<ModeField)
+	ConfLsb = byte(SPS8<<DRField) | byte(CMTraditional<<CMField) | byte(CPActiveLow<<CPField) | byte(LCYes<<LCField) | byte(QDisable<<QField)
 	module.Device.Write([]byte{configReg, ConfMsb, ConfLsb})
 
-	return err
-}
-
-func ReadConversionRegister(module *Ads1115) (int16, float64, []byte) {
+	time.Sleep(500 * time.Millisecond)
+	// Reading the value
 	regValue := []byte{0, 0}
-
 	value := int16(0)
-
 	module.Device.Tx([]byte{conversionReg}, regValue)
 	value = 0 | (int16(regValue[0]) << 8) | int16(regValue[1])
-
-	return value, float64(value) * PGA4096Scale, regValue
+	/*
+		log.Printf("end point %s\n", input)
+		log.Printf("value %d\n", value)
+		log.Printf("float value %.4f\n", float64(value) * PGA6144Scale)
+		log.Printf("regvalue %d\n", regValue)
+	*/
+	//return float64(value) * PGA4096Scale
+	return float64(value) * PGA6144Scale
 }

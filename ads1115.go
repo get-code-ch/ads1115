@@ -39,7 +39,7 @@ type Configuration struct {
 }
 
 const (
-	// Register Address
+	// Register address
 	conversionReg = 0x00
 	configReg     = 0x01
 	lowThreshReg  = 0x02
@@ -176,10 +176,10 @@ func ReadConversionRegister(module *Ads1115, input string) float64 {
 	}
 
 	ConfMsb = byte(0)<<OsField | byte(mux)<<MuxField | byte(PGA6144<<PGAField) | byte(ModeContinuous<<ModeField)
-	ConfLsb = byte(SPS8<<DRField) | byte(CMTraditional<<CMField) | byte(CPActiveLow<<CPField) | byte(LCYes<<LCField) | byte(QDisable<<QField)
+	ConfLsb = byte(SPS16<<DRField) | byte(CMTraditional<<CMField) | byte(CPActiveLow<<CPField) | byte(LCNon<<LCField) | byte(QOne<<QField)
 	module.Device.Write([]byte{configReg, ConfMsb, ConfLsb})
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(250 * time.Millisecond)
 	// Reading the value
 	regValue := []byte{0, 0}
 	value := int16(0)

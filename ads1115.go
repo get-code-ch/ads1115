@@ -153,8 +153,8 @@ func Init(device string, add int, module *Ads1115) error {
 	return nil
 }
 
-func ReadConversionRegister(module *Ads1115, input string) float64 {
-
+// ReadAnalog function read conversion register en return result in volt
+func ReadAnalog(module *Ads1115, input string) float64 {
 	// Config input value to read
 	ConfMsb := byte(0)
 	ConfLsb := byte(0)
@@ -193,4 +193,9 @@ func ReadConversionRegister(module *Ads1115, input string) float64 {
 	*/
 	//return float64(value) * PGA4096Scale
 	return float64(value) * PGA6144Scale
+}
+
+// ReadConversionRegister function is deprecated en is replaced by ReadAnalog function
+func ReadConversionRegister(module *Ads1115, input string) float64 {
+	return ReadAnalog(module, input)
 }
